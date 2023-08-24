@@ -5,13 +5,14 @@
 ######################################################################################################
 
 # Your PAT (Personal Access Token) can be found in the portal under Authentification
-PAT = 'YOUR_PAT_HERE'
+PAT = '4406b505de19485fa54e96b5de4e3de7'
 # Specify the correct user_id/app_id pairings
 # Since you're making inferences outside your app's scope
-USER_ID = 'tayyab'
-APP_ID = 'Llama2Tutorial'
+USER_ID = 'meta'
+APP_ID = 'Llama-2'
 # Change these to whatever model and text URL you want to use
-WORKFLOW_ID = 'workflow-c8dd91'
+MODEL_ID = 'llama2-70b-chat'
+MODEL_VERSION_ID = '6c27e86364ba461d98de95cddc559cb3'
 TEXT_FILE_URL = 'https://samples.clarifai.com/negative_sentence_12.txt'
 
 ############################################################################
@@ -29,10 +30,11 @@ metadata = (('authorization', 'Key ' + PAT),)
 
 userDataObject = resources_pb2.UserAppIDSet(user_id=USER_ID, app_id=APP_ID)
 
-post_workflow_results_response = stub.PostWorkflowResults(
-    service_pb2.PostWorkflowResultsRequest(
-        user_app_id=userDataObject,  
-        workflow_id=WORKFLOW_ID,
+post_model_outputs_response = stub.PostModelOutputs(
+    service_pb2.PostModelOutputsRequest(
+        user_app_id=userDataObject,  # The userDataObject is created in the overview and is required when using a PAT
+        model_id=MODEL_ID,
+        version_id=MODEL_VERSION_ID,  # This is optional. Defaults to the latest model version
         inputs=[
             resources_pb2.Input(
                 data=resources_pb2.Data(
@@ -45,20 +47,16 @@ post_workflow_results_response = stub.PostWorkflowResults(
     ),
     metadata=metadata
 )
-if post_workflow_results_response.status.code != status_code_pb2.SUCCESS:
-    print(post_workflow_results_response.status)
-    raise Exception("Post workflow results failed, status: " + post_workflow_results_response.status.description)
+if post_model_outputs_response.status.code != status_code_pb2.SUCCESS:
+    print(post_model_outputs_response.status)
+    raise Exception("Post model outputs failed, status: " + post_model_outputs_response.status.description)
 
-# We'll get one WorkflowResult for each input we used above. Because of one input, we have here one WorkflowResult
-results = post_workflow_results_response.results[0]
+# Since we have one input, one output will exist here
+output = post_model_outputs_response.outputs[0]
 
-# Each model we have in the workflow will produce one output.
-for output in results.outputs:
-    model = output.model
-
-    print("Predicted concepts for the model `%s`" % model.id)
-    for concept in output.data.concepts:
-        print("	%s %.2f" % (concept.name, concept.value))
+print("Predicted concepts:")
+for concept in output.data.concepts:
+    print("%s %.2f" % (concept.name, concept.value))
 
 # Uncomment this line to print the full Response JSON
-#print(results)
+#print(output)
